@@ -90,4 +90,84 @@ p = game[0,0] = 0,0
 
 f = game[2,1] = 2,1
 
+trait Ship {
+    //Required Method
+    pub fn update_pos(&mut self, current_position: Cords) -> Cords;
 
+    //Provided Method
+    pub fn ship_tick(&mut self, current_position: Cords) -> Cords {
+        self.update_pos(current_position)
+    }
+}
+
+struct FlyShip {
+    time_stationary: u32,
+    past_positions: Vec<Cords>,
+    id: ID,
+}
+
+impl Ship for FlyShip {
+    pub fn update_pos(&mut self, current_position: Cords) -> Cords {
+        return current_position+2;
+    }
+}
+
+struct BeeShip {
+    time_stationary: u32,
+    past_positions: Vec<Cords>,
+    id: ID,
+}
+
+impl Ship for BeeShip {
+    pub fn update_pos(&mut self, current_position: Cords) -> Cords {
+        return current_position+1;
+    }
+}
+
+impl BeeShip {
+    pub fn ship_tick(&mut self, current_position: Cords) -> Cords {
+      //1. update time_stationary
+      //2. update current_position and any meta data related to position
+        let updated_position = self.update_pos(current_position);
+        return updated_position;
+    }
+}
+
+struct GameState {
+    ships: BTreeMap<ShipId, Ship>,
+    state: (BTreeMap<Cords, ShipId>, BTreeMap<Ship, Cords>)
+}
+
+impl GameState {
+    pub fn new() -> Self;
+    pub fn get_cords(&mut self, ship_id: ID) -> Cords;
+    pub fn set_cords(&mut self, ship_id: ID, cords: Cords);
+    pub fn remove_ship(&mut self, ship_id: ID);
+    pub fn print_frame(&self);
+    pub fn ships(&self) -> Vec<&Ships>;
+
+    pub fn game_tick(&mut self) {
+        for ship in self.ships() {
+            let updated_position = ship.ship_tick(self.get_cords(ship.id));
+            self.set_cords(ship.id, updated_position);
+        }
+    }
+}
+
+let gamestate = GameState::new();
+loop {
+    //Player ship if stdin == ">" {set_cords
+    gamestate.game_tick();
+    gamestate.print_frame();
+    sleep(tickrate);
+}
+
+*f**
+****
+****
+****
+
+*f**
+**f*
+*f**
+**f*
