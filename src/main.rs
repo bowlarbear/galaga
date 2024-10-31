@@ -12,7 +12,8 @@ enum SpaceObject {
 
 // --- Type Alias for Coordinates ---
 type Cords = (u8, u8);
-type ID = u32;// --- Ship Trait ---
+type ID = u32;
+// Ship Trait 
 trait Ship {
     fn update_pos(&mut self, current_position: Cords) -> Cords;
 
@@ -31,7 +32,7 @@ struct FlyShip {
 impl Ship for FlyShip {
     fn update_pos(&mut self, current_position: Cords) -> Cords {
         // Movement logic for FlyShip
-        (current_position.0 + 1, current_position.1)  // Example
+        (current_position.0, current_position.1.saturating_add(1)) 
     }
 }
 
@@ -76,7 +77,8 @@ impl GameState {
             for x in 0..3 {
                 let cords = (x, y);
                 if let Some(id) = self.positions.get(&cords) {
-                    print!("S"); // Simplified symbol for any ship
+                    print!("S");       
+                // Simplified symbol for any ship
                 } else {
                     print!("*");
                 }
@@ -86,24 +88,29 @@ impl GameState {
     }    
     
     fn game_tick(&mut self) {
-        // Step 1: Collect updates in a separate vector
-        let updates: Vec<(ID, Cords)> = self
+        // Step 1: Collect updates for old and new positions without modifying `self`
+        let updates: Vec<(ID, Cords, Cords)> = self
             .ships
             .iter_mut()
             .filter_map(|(&id, ship)| {
-                // Get the current position of the ship
+                // Get the current position from `positions` directly
                 let current_position = self.positions.iter().find_map(|(&cords, &ship_id)| {
                     if ship_id == id {
                         Some(cords)
                     } else {
                         None
                     }
-                })?;                // Calculate the updated position
+                })?;                
+                // Calculate the updated position
                 let updated_position = ship.ship_tick(current_position);
-                Some((id, updated_position))
+                Some((id, current_position, updated_position))
             })
-            .collect();        // Step 2: Apply the collected updates
-        for (id, updated_position) in updates {
+            .collect();        
+            // Step 2: Apply the updates by removing old positions and setting new ones
+        for (id, old_position, updated_position) in updates {
+            // Remove the old position
+            self.positions.remove(&old_position);
+            // Set the new position
             self.set_cords(id, updated_position);
         }
     }
@@ -112,10 +119,21 @@ impl GameState {
 
 fn main() {
     let mut gamestate = GameState::new();
+     // Step 1: Create a FlyShip instance with a unique ID (e.g., 1)
+     let flyship = FlyShip {
+        time_stationary: 0,
+        past_positions: Vec::new(),
+        id: 1,
+    };    
+    // Step 2: Insert the FlyShip into the `ships` map
+    gamestate.ships.insert(flyship.id, Box::new(flyship));    
+    // Step 3: Set its initial coordinates to (0, 0)
+    gamestate.set_cords(1, (0, 0));
     loop {
-        // gamestate.game_tick();
+        gamestate.game_tick();
         gamestate.print_frame();
-        sleep(Duration::from_millis(500)); // Tick rate
+        // Tick rate
+        sleep(Duration::from_millis(500));
     }
 }
 
