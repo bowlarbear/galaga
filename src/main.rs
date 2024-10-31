@@ -88,7 +88,7 @@ impl GameState {
     }    
     
     fn game_tick(&mut self) {
-        // Step 1: Collect updates for old and new positions without modifying `self`
+        // Step 1: Collect updates for old and new positions
         let updates: Vec<(ID, Cords, Cords)> = self
             .ships
             .iter_mut()
