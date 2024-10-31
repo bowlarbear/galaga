@@ -44,7 +44,7 @@ struct BeeShip {
 impl Ship for BeeShip {
     fn update_pos(&mut self, current_position: Cords) -> Cords {
         // Movement logic for BeeShip
-        (current_position.0, current_position.1 + 1)  // Example
+        (current_position.0, current_position.1 + 1)
     }
 }
 
@@ -52,17 +52,25 @@ impl Ship for BeeShip {
 struct GameState {
     ships: BTreeMap<ID, Box<dyn Ship>>,
     positions: BTreeMap<Cords, ID>,
-}impl GameState {
+}
+
+impl GameState {
     fn new() -> Self {
         GameState {
             ships: BTreeMap::new(),
             positions: BTreeMap::new(),
         }
-    }    fn get_cords(&self, ship_id: ID) -> Option<Cords> {
+    }    
+    
+    fn get_cords(&self, ship_id: ID) -> Option<Cords> {
         self.positions.iter().find_map(|(&cords, &id)| if id == ship_id { Some(cords) } else { None })
-    }    fn set_cords(&mut self, ship_id: ID, cords: Cords) {
+    }    
+    
+    fn set_cords(&mut self, ship_id: ID, cords: Cords) {
         self.positions.insert(cords, ship_id);
-    }    fn print_frame(&self) {
+    }    
+    
+    fn print_frame(&self) {
         for y in 0..3 {
             for x in 0..3 {
                 let cords = (x, y);
@@ -74,7 +82,9 @@ struct GameState {
             }
             println!();
         }
-    }    fn game_tick(&mut self) {
+    }    
+    
+    fn game_tick(&mut self) {
         for (&id, ship) in mut self.ships {
             if let Some(current_position) = self.get_cords(id) {
                 let updated_position = ship.ship_tick(current_position);
