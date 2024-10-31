@@ -15,6 +15,7 @@ type Cords = (u8, u8);
 type ID = u32;// --- Ship Trait ---
 trait Ship {
     fn update_pos(&mut self, current_position: Cords) -> Cords;
+
     fn ship_tick(&mut self, current_position: Cords) -> Cords {
         self.update_pos(current_position)
     }
@@ -64,7 +65,7 @@ impl GameState {
     
     fn get_cords(&self, ship_id: ID) -> Option<Cords> {
         self.positions.iter().find_map(|(&cords, &id)| if id == ship_id { Some(cords) } else { None })
-    }    
+    } 
     
     fn set_cords(&mut self, ship_id: ID, cords: Cords) {
         self.positions.insert(cords, ship_id);
@@ -85,19 +86,34 @@ impl GameState {
     }    
     
     fn game_tick(&mut self) {
-        for (&id, ship) in mut self.ships {
-            if let Some(current_position) = self.get_cords(id) {
+        // Step 1: Collect updates in a separate vector
+        let updates: Vec<(ID, Cords)> = self
+            .ships
+            .iter_mut()
+            .filter_map(|(&id, ship)| {
+                // Get the current position of the ship
+                let current_position = self.positions.iter().find_map(|(&cords, &ship_id)| {
+                    if ship_id == id {
+                        Some(cords)
+                    } else {
+                        None
+                    }
+                })?;                // Calculate the updated position
                 let updated_position = ship.ship_tick(current_position);
-                self.set_cords(id, updated_position);
-            }
+                Some((id, updated_position))
+            })
+            .collect();        // Step 2: Apply the collected updates
+        for (id, updated_position) in updates {
+            self.set_cords(id, updated_position);
         }
     }
+
 }
 
 fn main() {
     let mut gamestate = GameState::new();
     loop {
-        gamestate.game_tick();
+        // gamestate.game_tick();
         gamestate.print_frame();
         sleep(Duration::from_millis(500)); // Tick rate
     }
