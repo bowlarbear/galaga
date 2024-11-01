@@ -31,8 +31,16 @@ struct FlyShip {
 
 impl Ship for FlyShip {
     fn update_pos(&mut self, current_position: Cords) -> Cords {
+        if self.time_stationary < 10{
+            self.time_stationary += 1;
+            //return pos without moving
+            current_position
+        }else{
+        //reset time_stationary
+        self.time_stationary = 0;
         // Movement logic for FlyShip
         (current_position.0, current_position.1.saturating_add(1)) 
+        }
     }
 }
 
