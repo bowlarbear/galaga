@@ -13,7 +13,8 @@ enum SpaceObject {
 // --- Type Alias for Coordinates ---
 type Cords = (u8, u8);
 type ID = u32;
-// Ship Trait 
+
+// Ship Trait
 trait Ship {
     fn update_pos(&mut self, current_position: Cords) -> Cords;
 
@@ -21,6 +22,10 @@ trait Ship {
         self.update_pos(current_position)
     }
 }
+
+// Define grid boundaries (width and height)
+const GRID_WIDTH: u32 = 5;
+const GRID_HEIGHT: u32 = 5;
 
 // --- FlyShip Struct ---
 struct FlyShip {
@@ -31,24 +36,11 @@ struct FlyShip {
 
 impl Ship for FlyShip {
     fn update_pos(&mut self, current_position: Cords) -> Cords {
-        // Define grid boundaries (width and height)
-        let max_x = 2;
-        let max_y = 2;        if self.time_stationary < 10 {
-            self.time_stationary += 1;
-            // Return position without moving if stationary time < 10
-            current_position
-        } else {
-            // Reset time_stationary
-            self.time_stationary = 0;            
-            // Movement logic for FlyShip (attempt to move down)
-            let mut new_y = current_position.1.saturating_add(1);            
-            // Wrapping behavior: if moving out of bounds, wrap to the other side
-            if new_y > max_y {
-                new_y = 0; 
-                // Wrap to the top if going beyond the bottom
-            }  
+        self.time_stationary = self.time_stationary + 1 % 10;
+        if self.time_stationary == 9 {
+            let new_y = (current_position.1 + 1) % GRID_HEIGHT;
             (current_position.0, new_y)
-        }
+        } else {current_position}
     }
 }
 
@@ -61,7 +53,6 @@ struct BeeShip {
 
 impl Ship for BeeShip {
     fn update_pos(&mut self, current_position: Cords) -> Cords {
-        // Movement logic for BeeShip
         (current_position.0, current_position.1 + 1)
     }
 }
@@ -78,22 +69,22 @@ impl GameState {
             ships: BTreeMap::new(),
             positions: BTreeMap::new(),
         }
-    }    
-    
+    }
+
     fn get_cords(&self, ship_id: ID) -> Option<Cords> {
         self.positions.iter().find_map(|(&cords, &id)| if id == ship_id { Some(cords) } else { None })
-    } 
-    
+    }
+
     fn set_cords(&mut self, ship_id: ID, cords: Cords) {
         self.positions.insert(cords, ship_id);
-    }    
-    
+    }
+
     fn print_frame(&self) {
-        for y in 0..3 {
-            for x in 0..3 {
+        for y in 0..GRID_HEIGHT {
+            for x in 0..GRID_WIDTH {
                 let cords = (x, y);
                 if let Some(id) = self.positions.get(&cords) {
-                    print!("S");       
+                    print!("S");
                 // Simplified symbol for any ship
                 } else {
                     print!("*");
@@ -101,31 +92,27 @@ impl GameState {
             }
             println!();
         }
-    }    
-    
+    }
+
     fn game_tick(&mut self) {
         // Step 1: Collect updates for old and new positions
         let updates: Vec<(ID, Cords, Cords)> = self
             .ships
             .iter_mut()
-            .filter_map(|(&id, ship)| {
+            .filter_map(|(&id, ship)| -> Option<(ID, Cords, Cords)> {
                 // Get the current position from `positions` directly
-                let current_position = self.positions.iter().find_map(|(&cords, &ship_id)| {
-                    if ship_id == id {
-                        Some(cords)
-                    } else {
-                        None
-                    }
-                })?;                
+                let current_position = self.get_cords(id)?;
                 // Calculate the updated position
-                let updated_position = ship.ship_tick(current_position);
+                let updated_position = ship.ship_tick(current_position);//TODO: Make ship_tick return Option<Cords> only Some if they changed
+                if current_position == updated_position {return None;}
                 Some((id, current_position, updated_position))
             })
-            .collect();        
+            .collect();
             // Step 2: Apply the updates by removing old positions and setting new ones
         for (id, old_position, updated_position) in updates {
             // Remove the old position
-            self.positions.remove(&old_position);
+            self.ships.remove(id);//Need to add this
+            self.positions.remove(&old_position); //TODO: move the moving of the ships into it own method, to ensure we don't screw up the adding or removing of them.
             // Set the new position
             self.set_cords(id, updated_position);
         }
@@ -140,9 +127,9 @@ fn main() {
         time_stationary: 0,
         past_positions: Vec::new(),
         id: 1,
-    };    
+    };
     // Step 2: Insert the FlyShip into the `ships` map
-    gamestate.ships.insert(flyship.id, Box::new(flyship));    
+    gamestate.ships.insert(flyship.id, Box::new(flyship));
     // Step 3: Set its initial coordinates to (0, 0)
     gamestate.set_cords(1, (0, 0));
     loop {
