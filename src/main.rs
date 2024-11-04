@@ -31,15 +31,23 @@ struct FlyShip {
 
 impl Ship for FlyShip {
     fn update_pos(&mut self, current_position: Cords) -> Cords {
-        if self.time_stationary < 10{
+        // Define grid boundaries (width and height)
+        let max_x = 2;
+        let max_y = 2;        if self.time_stationary < 10 {
             self.time_stationary += 1;
-            //return pos without moving
+            // Return position without moving if stationary time < 10
             current_position
-        }else{
-        //reset time_stationary
-        self.time_stationary = 0;
-        // Movement logic for FlyShip
-        (current_position.0, current_position.1.saturating_add(1)) 
+        } else {
+            // Reset time_stationary
+            self.time_stationary = 0;            
+            // Movement logic for FlyShip (attempt to move down)
+            let mut new_y = current_position.1.saturating_add(1);            
+            // Wrapping behavior: if moving out of bounds, wrap to the other side
+            if new_y > max_y {
+                new_y = 0; 
+                // Wrap to the top if going beyond the bottom
+            }  
+            (current_position.0, new_y)
         }
     }
 }
