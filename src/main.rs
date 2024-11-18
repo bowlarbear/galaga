@@ -16,9 +16,9 @@ type ID = u32;
 
 // Ship Trait
 trait Ship {
-    fn update_pos(&mut self, current_position: Cords) -> Cords;
+    fn update_pos(&mut self, current_position: Cords) -> Option<Cords>;
 
-    fn ship_tick(&mut self, current_position: Cords) -> Cords {
+    fn ship_tick(&mut self, current_position: Cords) -> Option<Cords> {
         self.update_pos(current_position)
     }
 }
@@ -35,12 +35,12 @@ struct FlyShip {
 }
 
 impl Ship for FlyShip {
-    fn update_pos(&mut self, current_position: Cords) -> Cords {
+    fn update_pos(&mut self, current_position: Cords) -> Option<Cords> {
         self.time_stationary = self.time_stationary + 1 % 10;
         if self.time_stationary == 9 {
             let new_y = (current_position.1 + 1) % GRID_HEIGHT;
-            (current_position.0, new_y)
-        } else {current_position}
+            Some((current_position.0, new_y))
+        } else {None}
     }
 }
 
@@ -52,8 +52,8 @@ struct BeeShip {
 }
 
 impl Ship for BeeShip {
-    fn update_pos(&mut self, current_position: Cords) -> Cords {
-        (current_position.0, current_position.1 + 1)
+    fn update_pos(&mut self, current_position: Cords) -> Option<Cords> {
+        Some((current_position.0, current_position.1 + 1))
     }
 }
 
@@ -97,26 +97,28 @@ impl GameState {
     }
 
     fn game_tick(&mut self) {
-        // Step 1: Collect updates for old and new positions
-        let updates: Vec<(ID, Cords, Cords)> = self
-            .ships
-            .iter_mut()
-            .filter_map(|(&id, ship)| -> Option<(ID, Cords, Cords)> {
-                // Get the current position from `positions` directly
-                let current_position = self.get_cords(id)?;
-                // Calculate the updated position
-                let updated_position = ship.ship_tick(current_position);//TODO: Make ship_tick return Option<Cords> only Some if they changed
-                if current_position == updated_position {return None;}
+        // Step 1: Collect IDs and current positions into a temporary vector
+        let ship_positions: Vec<(ID, Cords)> = self
+            .positions
+            .iter()
+            .map(|(&cords, &id)| (id, cords))
+            .collect();   
+        // Step 2: Collect updates based on the ship positions
+        let updates: Vec<(ID, Cords, Option<Cords>)> = ship_positions
+            .into_iter()
+            .filter_map(|(id, current_position)| {
+                let updated_position = self.ships.get_mut(&id)?.ship_tick(current_position);
                 Some((id, current_position, updated_position))
             })
-            .collect();
-            // Step 2: Apply the updates by removing old positions and setting new ones
+            .collect();    
+        // Step 3: Apply the updates
         for (id, old_position, updated_position) in updates {
-            // Remove the old position
-            self.ships.remove(id);//Need to add this
-            self.positions.remove(&old_position); //TODO: move the moving of the ships into it own method, to ensure we don't screw up the adding or removing of them.
-            // Set the new position
-            self.set_cords(id, updated_position);
+            if let Some(new_position) = updated_position {
+                // Remove the old position
+                self.positions.remove(&old_position); 
+                // Set the new position
+                self.set_cords(id, new_position);     
+            }
         }
     }
 
