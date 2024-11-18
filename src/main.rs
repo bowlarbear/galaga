@@ -97,26 +97,37 @@ impl GameState {
     }
 
     fn game_tick(&mut self) {
-        // Step 1: Collect IDs and current positions into a temporary vector
+        //iterate over the positions map, storing the current coordinates of each ship according to it's ID
         let ship_positions: Vec<(ID, Cords)> = self
             .positions
             .iter()
+            //transform each key value pair into a tuple by deferencing the keys and values
             .map(|(&cords, &id)| (id, cords))
+            //convert the iterator into a vector of ship IDs and their current coords
             .collect();   
-        // Step 2: Collect updates based on the ship positions
+        //use the collected positions to calcuate updates
         let updates: Vec<(ID, Cords, Option<Cords>)> = ship_positions
+            //consume the ship position vector, creating an iterator that produces each ID, Coords tuple
             .into_iter()
+            //process each ship ID & current position to determine the updated position
             .filter_map(|(id, current_position)| {
-                let updated_position = self.ships.get_mut(&id)?.ship_tick(current_position);
+                //retrieve a mutable reference to the ship object associated with the given ID, allowing the ship's state to be modified
+                let updated_position = self.ships.get_mut(&id)?
+                //call ship_tick method, passing in the current position, which will calculate the next position (if any), return an Option<Coords> or None if ship doesn't move this tick
+                .ship_tick(current_position);
+                //wrap the ship ID, current position, and result of the updated position into a Option<tuple>
                 Some((id, current_position, updated_position))
+                //if updated_position was None return None
             })
+            //convert the iterator of tuples into a vector
             .collect();    
-        // Step 3: Apply the updates
+        //iterate through the the calculated updates vector to remove old positions and set new positions
         for (id, old_position, updated_position) in updates {
+            //check if the updated position is Some, if it was None then assume the ship didn't move (implicitly skipped)
             if let Some(new_position) = updated_position {
-                // Remove the old position
+                // Remove the old position from the positions map
                 self.positions.remove(&old_position); 
-                // Set the new position
+                // Set the new position of the corresponding ship ID in the positions map
                 self.set_cords(id, new_position);     
             }
         }
