@@ -36,7 +36,7 @@ struct FlyShip {
 
 impl Ship for FlyShip {
     fn update_pos(&mut self, current_position: Cords) -> Option<Cords> {
-        self.time_stationary = self.time_stationary + 1 % 10;
+        self.time_stationary = (self.time_stationary + 1) % 10;
         if self.time_stationary == 9 {
             let new_y = (current_position.1 + 1) % GRID_HEIGHT;
             Some((current_position.0, new_y))
