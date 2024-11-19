@@ -3,6 +3,10 @@ use std::thread::sleep;
 use std::time::Duration;
 
 
+// Define grid boundaries (width and height)
+const GRID_WIDTH: u8 = 5;
+const GRID_HEIGHT: u8 = 5;
+
 // --- SpaceObject Enum ---
 enum SpaceObject {
     PlayerShip,
@@ -12,7 +16,6 @@ enum SpaceObject {
 
 // --- Type Alias for Coordinates ---
 type Cords = (u8, u8);
-type ID = u32;
 
 // Ship Trait
 trait Ship {
@@ -23,15 +26,10 @@ trait Ship {
     }
 }
 
-// Define grid boundaries (width and height)
-const GRID_WIDTH: u8 = 5;
-const GRID_HEIGHT: u8 = 5;
-
 // --- FlyShip Struct ---
 struct FlyShip {
     time_stationary: u32,
     past_positions: Vec<Cords>,
-    id: ID,
 }
 
 impl Ship for FlyShip {
@@ -48,7 +46,6 @@ impl Ship for FlyShip {
 struct BeeShip {
     time_stationary: u32,
     past_positions: Vec<Cords>,
-    id: ID,
 }
 
 impl Ship for BeeShip {
@@ -59,24 +56,28 @@ impl Ship for BeeShip {
 
 // --- GameState Struct ---
 struct GameState {
-    ships: BTreeMap<ID, Box<dyn Ship>>,
-    positions: BTreeMap<Cords, ID>,
+    game_board: BTreeMap<Cords, Box<dyn Ship>>,
 }
 
 impl GameState {
     fn new() -> Self {
         GameState {
-            ships: BTreeMap::new(),
-            positions: BTreeMap::new(),
+            game_board: BTreeMap::new(),
         }
     }
-
-    fn get_cords(&self, ship_id: ID) -> Option<Cords> {
-        self.positions.iter().find_map(|(&cords, &id)| if id == ship_id { Some(cords) } else { None })
+    //add a ship to the game board
+    fn add_ship(&mut self, cords: Cords, ship: Box<dyn Ship>) {
+        self.game_board.insert(cords, ship);
     }
-
-    fn set_cords(&mut self, ship_id: ID, cords: Cords) {
-        self.positions.insert(cords, ship_id);
+    //remove a ship from the game board
+    fn remove_ship(&mut self, cords: Cords) -> Option<Box<dyn Ship>>{
+        self.game_board.remove(&cords)
+    }
+    //move an existing ship on the game board
+    fn move_ship(&mut self, old_cords: Cords, new_cords: Cords){
+        if let Some(ship) = self.remove_ship(old_cords) {
+            self.add_ship(new_cords, ship);
+        }
     }
 
     fn print_frame(&self) {
@@ -85,7 +86,7 @@ impl GameState {
         for y in 0..GRID_HEIGHT {
             for x in 0..GRID_WIDTH {
                 let cords = (x, y);
-                if let Some(id) = self.positions.get(&cords) {
+                if self.game_board.contains_key(&cords) {
                     print!("S");
                 // Simplified symbol for any ship
                 } else {
@@ -97,56 +98,31 @@ impl GameState {
     }
 
     fn game_tick(&mut self) {
-        //iterate over the positions map, storing the current coordinates of each ship according to it's ID
-        let ship_positions: Vec<(ID, Cords)> = self
-            .positions
-            .iter()
-            //transform each key value pair into a tuple by deferencing the keys and values
-            .map(|(&cords, &id)| (id, cords))
-            //convert the iterator into a vector of ship IDs and their current coords
-            .collect();   
-        //use the collected positions to calcuate updates
-        let updates: Vec<(ID, Cords, Option<Cords>)> = ship_positions
-            //consume the ship position vector, creating an iterator that produces each ID, Coords tuple
-            .into_iter()
-            //process each ship ID & current position to determine the updated position
-            .filter_map(|(id, current_position)| {
-                //retrieve a mutable reference to the ship object associated with the given ID, allowing the ship's state to be modified
-                let updated_position = self.ships.get_mut(&id)?
-                //call ship_tick method, passing in the current position, which will calculate the next position (if any), return an Option<Coords> or None if ship doesn't move this tick
-                .ship_tick(current_position);
-                //wrap the ship ID, current position, and result of the updated position into a Option<tuple>
-                Some((id, current_position, updated_position))
-                //if updated_position was None return None
-            })
-            //convert the iterator of tuples into a vector
-            .collect();    
-        //iterate through the the calculated updates vector to remove old positions and set new positions
-        for (id, old_position, updated_position) in updates {
-            //check if the updated position is Some, if it was None then assume the ship didn't move (implicitly skipped)
-            if let Some(new_position) = updated_position {
-                // Remove the old position from the positions map
-                self.positions.remove(&old_position); 
-                // Set the new position of the corresponding ship ID in the positions map
-                self.set_cords(id, new_position);     
-            }
+        //collect updates for new and old positions
+        let updates: Vec<(Cords, Cords)> = self.game_board
+        .iter_mut()
+        .filter_map(|(&current_position, ship)| {
+            let new_position = ship.ship_tick(current_position)?;
+            Some((current_position, new_position))
+        })
+        .collect();
+        //apply updates
+        for (old_position, new_position) in updates {
+            self.move_ship(old_position, new_position);
         }
     }
-
 }
 
 fn main() {
     let mut gamestate = GameState::new();
-     // Step 1: Create a FlyShip instance with a unique ID (e.g., 1)
+     // Step 1: Create a FlyShip instance
      let flyship = FlyShip {
         time_stationary: 0,
         past_positions: Vec::new(),
-        id: 1,
     };
     // Step 2: Insert the FlyShip into the `ships` map
-    gamestate.ships.insert(flyship.id, Box::new(flyship));
+    gamestate.add_ship((0,0), Box::new(flyship));
     // Step 3: Set its initial coordinates to (0, 0)
-    gamestate.set_cords(1, (0, 0));
     loop {
         gamestate.game_tick();
         gamestate.print_frame();
@@ -154,3 +130,10 @@ fn main() {
         sleep(Duration::from_millis(500));
     }
 }
+
+
+// TODO:
+
+    //USE STYLE DOC
+
+    //RUN CARGO CLIPPY OFTEN
