@@ -21,6 +21,23 @@ trait Ship {
     fn symbol(&self) -> char;
 }
 
+// --- PlayerShip Struct ---
+struct PlayerShip {
+    time_stationary: u32,
+    past_positions: Vec<Cords>,
+}
+
+impl Ship for PlayerShip{
+
+    fn update_pos(&mut self, current_position: Cords) -> Option<Cords>{
+        Some((current_position.0, current_position.1))
+    }
+
+    fn symbol(&self) -> char{
+        'P'
+    }
+}
+
 // --- FlyShip Struct ---
 struct FlyShip {
     time_stationary: u32,
@@ -71,7 +88,7 @@ impl Ship for Explosion{
     }
 
     fn symbol(&self) -> char{
-        'X'
+        '#'
     }
 }
 
