@@ -57,6 +57,24 @@ impl Ship for BeeShip {
     }
 }
 
+
+// --- Explosion Struct ---
+struct Explosion {
+    time_stationary: u32,
+    past_positions: Vec<Cords>,
+}
+
+impl Ship for Explosion{
+
+    fn update_pos(&mut self, current_position: Cords) -> Option<Cords>{
+        Some((current_position.0, current_position.1))
+    }
+
+    fn symbol(&self) -> char{
+        'X'
+    }
+}
+
 // --- GameState Struct ---
 struct GameState {
     game_board: BTreeMap<Cords, Box<dyn Ship>>,
