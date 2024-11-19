@@ -7,13 +7,6 @@ use std::time::Duration;
 const GRID_WIDTH: u8 = 5;
 const GRID_HEIGHT: u8 = 5;
 
-// --- SpaceObject Enum ---
-enum SpaceObject {
-    PlayerShip,
-    Bee,
-    Fly,
-}
-
 // --- Type Alias for Coordinates ---
 type Cords = (u8, u8);
 
@@ -78,6 +71,10 @@ impl GameState {
         if let Some(ship) = self.remove_ship(old_cords) {
             self.add_ship(new_cords, ship);
         }
+    }
+
+    fn collision() {
+
     }
 
     fn print_frame(&self) {
