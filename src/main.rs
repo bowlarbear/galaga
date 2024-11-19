@@ -17,6 +17,8 @@ trait Ship {
     fn ship_tick(&mut self, current_position: Cords) -> Option<Cords> {
         self.update_pos(current_position)
     }
+
+    fn symbol(&self) -> char;
 }
 
 // --- FlyShip Struct ---
@@ -33,6 +35,10 @@ impl Ship for FlyShip {
             Some((current_position.0, new_y))
         } else {None}
     }
+
+    fn symbol(&self) -> char{
+        'F'
+    }
 }
 
 // --- BeeShip Struct ---
@@ -44,6 +50,10 @@ struct BeeShip {
 impl Ship for BeeShip {
     fn update_pos(&mut self, current_position: Cords) -> Option<Cords> {
         Some((current_position.0, current_position.1 + 1))
+    }
+
+    fn symbol(&self) -> char{
+        'B'
     }
 }
 
@@ -83,8 +93,8 @@ impl GameState {
         for y in 0..GRID_HEIGHT {
             for x in 0..GRID_WIDTH {
                 let cords = (x, y);
-                if self.game_board.contains_key(&cords) {
-                    print!("S");
+                if let Some(ship) = self.game_board.get(&cords) {
+                    print!("{}", ship.symbol());
                 // Simplified symbol for any ship
                 } else {
                     print!("*");
