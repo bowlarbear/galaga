@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::thread::sleep;
 use std::time::Duration;
+use crossterm::event::{self, Event, KeyCode};
 
 
 // Define grid boundaries (width and height)
@@ -22,15 +23,30 @@ trait Ship {
 }
 
 // --- PlayerShip Struct ---
-struct PlayerShip {
-    time_stationary: u32,
-    past_positions: Vec<Cords>,
-}
+struct PlayerShip;
 
 impl Ship for PlayerShip{
-
+    //detect player inputs
     fn update_pos(&mut self, current_position: Cords) -> Option<Cords>{
-        Some((current_position.0, current_position.1))
+        if event::poll(Duration::from_millis(10)).unwrap() {
+            if let Event::Key(key_event) = event::read().unwrap(){
+                match key_event.code{
+                    KeyCode::Left => {
+                        if current_position.0 > 0 {
+                            return Some((current_position.0 - 1, GRID_HEIGHT - 1));
+                        }
+                    }
+                    KeyCode::Right => {
+                        if current_position.0 < GRID_WIDTH - 1 {
+                            return Some((current_position.0 + 1, GRID_HEIGHT - 1));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        //stay in the same spot if no user input
+        Some(current_position)
     }
 
     fn symbol(&self) -> char{
@@ -157,14 +173,17 @@ impl GameState {
 
 fn main() {
     let mut gamestate = GameState::new();
-     // Step 1: Create a FlyShip instance
-     let flyship = FlyShip {
+    //Create a PlayerShip instance
+    let playership = PlayerShip;
+    gamestate.add_ship((2, GRID_HEIGHT - 1), Box::new(playership));
+    //Create a FlyShip instance
+    let flyship = FlyShip {
         time_stationary: 0,
         past_positions: Vec::new(),
     };
-    // Step 2: Insert the FlyShip into the `ships` map
+    // Insert the FlyShip into the `ships` map
     gamestate.add_ship((0,0), Box::new(flyship));
-    // Step 3: Set its initial coordinates to (0, 0)
+    // Set its initial coordinates to (0, 0)
     loop {
         gamestate.game_tick();
         gamestate.print_frame();
